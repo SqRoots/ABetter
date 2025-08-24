@@ -1,9 +1,13 @@
 from matplotlib import pyplot as plt
 from scipy.stats import norm
 import numpy as np
+import pandas as pd
 from abetter import SampleMean
 from abetter.sample_mean import SSMean
 from abetter.io.format import to_str
+from abetter.test.two_inde_mean_t_test import mean_t_test_two_ind
+from abetter.test.two_inde_mean_z_test import mean_z_test_two_ind
+from abetter.test.two_inde_prop_z_test import prop_z_test_two_ind
 
 
 def plot_two_mean(s1: SampleMean, s2: SampleMean, points: int = 200) -> tuple[plt.Figure, plt.Axes]:
@@ -12,7 +16,7 @@ def plot_two_mean(s1: SampleMean, s2: SampleMean, points: int = 200) -> tuple[pl
     :param s1: 样本1
     :param s2: 样本2
     :param points: 绘图精度，越大精度越高，默认200
-    :return:
+    :return: fig, ax
     """
     with plt.ioff():
         c1, c2 = '#118ab2', '#bc4749'
@@ -25,7 +29,7 @@ def plot_two_mean(s1: SampleMean, s2: SampleMean, points: int = 200) -> tuple[pl
         y2 = norm.pdf(x, loc=s2.mean, scale=std2)
         y_max = np.max([y1, y2]) * 1.1
 
-        # 绘制密度函数
+        # 绘图
         fig, ax = plt.subplots(figsize=(7, 5))
         ax.plot(x, 0 * x, c='k', lw=1)
 
@@ -70,6 +74,12 @@ def plot_two_mean(s1: SampleMean, s2: SampleMean, points: int = 200) -> tuple[pl
 
 
 def plot_diff_mean(ss: SSMean, points: int = 200) -> tuple[plt.Figure, plt.Axes]:
+    """
+    绘制两个均值型样本之差的总体均值分布
+    :param ss: SSMean 类型，即两个 SampleMean 的差
+    :param points: 绘图精度，越大精度越高，默认200
+    :return: fig, ax
+    """
     with plt.ioff():
         c1, c2 = '#118ab2', '#bc4749'
         # 计算
@@ -128,3 +138,151 @@ def plot_diff_mean(ss: SSMean, points: int = 200) -> tuple[plt.Figure, plt.Axes]
             r'Error Ⅱ: $\beta=${beta}'.format(beta=f'{100*beta:.0f}%')
         ])
         return fig, ax
+
+
+def plot_mde_mean_sample(std1: float, std2: float,
+                         n_ratio: tuple[int]=(20, 80),
+                         n_min_range: tuple[int]=(5, 100),
+                         points: int=100,
+                         alpha_beta: tuple[tuple[float]]=((0.05, 0.20), (0.05, 0.10), (0.05, 0.05)),
+                         test: str="t",
+                         equal_var: bool=True):
+    """
+    绘制均值型样本的MDE
+    :param std1: 第1组样本标准差
+    :param std2: 第2组样本标准差
+    :param n_ratio: 两组样本比例，默认值 (20, 80)
+    :param n_min_range: 最小那一组样本的样本量范围，默认值 (5, 100)
+    :param points: 绘图精度，越大精度越高，默认值 100
+    :param alpha_beta: α和β的取值对，默认值 ((0.05, 0.20), (0.05, 0.10), (0.05, 0.05))
+    :param test: 检验方法，t检验和z检验，取值 't' 或 'z'
+    :param equal_var: 方差是否相等，仅对 t检验 有效
+    :return: fig, ax, mde
+    """
+    color_list = ['#' + _ for _ in '03045e-023e8a-0077b6-0096c7-00b4d8-48cae4-90e0ef-ade8f4-caf0f8'.split('-')]
+    ratio = max(n_ratio) / min(n_ratio)
+    mde = []
+    # 计算MDE ------------------------------------------------------------------------------------------------------------------------
+    if test in ('t', 'T'):
+        # t 检验
+        for i in range(*n_min_range, max(1, np.floor((n_min_range[1] - n_min_range[0]) / points).astype('int64'))):
+            n1, n2 = np.floor((i, i * ratio)).astype('int64')
+            nn = {'n1': n1, 'n2': n2}
+            mm = {f'mde_alpha_{a:.4f}_beta_{b:.4f}': mean_t_test_two_ind(
+                n1=n1, mean1=1, std1=std1,
+                n2=n2, mean2=2, std2=std2,
+                alpha=a, beta=b, h0='==',
+                equal_var=equal_var).get('mde')
+                  for a, b in alpha_beta}
+            mde.append(nn | mm)
+    elif test in ('z', 'Z'):
+        # Z 检验
+        for i in range(*n_min_range, max(1, np.floor((n_min_range[1] - n_min_range[0]) / points).astype('int64'))):
+            n1, n2 = np.floor((i, i * ratio)).astype('int64')
+            nn = {'n1': n1, 'n2': n2}
+            mm = {f'mde_alpha_{a:.4f}_beta_{b:.4f}': mean_z_test_two_ind(
+                n1=n1, mean1=1, std1=std1,
+                n2=n2, mean2=2, std2=std2,
+                alpha=a, beta=b, h0='==').get('mde')
+                  for a, b in alpha_beta}
+            mde.append(nn | mm)
+    else:
+        raise ValueError("test 取值只有 z 和 t 两种")
+    # 转为 DataFrame
+    mde = pd.DataFrame(mde)
+    # 绘图 ------------------------------------------------------------------------------------------------------------------------
+    # 关闭输出
+    with plt.ioff():
+        # 绘制密度函数
+        fig, ax = plt.subplots(figsize=(7, 5))
+        # 遍历所有的 alpha_beta 组合
+        alpha_beta = mde.columns[2:]
+        axs = [ax.plot(mde.n1, mde[c], c=color_list[i % 9], label=r'$\overline{X}_1$') for i, c in enumerate(alpha_beta)]
+        ax.set_xlim(min(mde.n1), max(mde.n1))
+
+        # 坐标刻度
+        ax.grid()
+
+        # 设置
+        plt.title('MDE on the sample size of the smallest group', fontsize=12, fontweight='bold', pad=20)
+        sub_title = 'MeanSample: Z-Test' if test not in ('t', 'T') else f'MeanSample: t-Test, {"Equal" if equal_var else "Unequal"} var'
+        plt.text(
+            0.5, 1,  # 位置（相对坐标，0.5是水平中心）
+            sub_title,
+            fontsize=10,
+            ha='center',  # 水平居中
+            va='bottom',
+            transform=plt.gca().transAxes  # 使用轴坐标系统
+        )
+        alpha_beta = [_.replace('mde_alpha_', r'$\alpha$=').replace('_beta_', r', $\beta$=') for _ in alpha_beta]
+        ax.legend([_[0] for _ in axs], alpha_beta)
+        # 轴标签
+        plt.xlabel("Sample Size of the smallest group")
+        plt.ylabel("MDE")
+
+    return fig, ax, mde
+
+
+def plot_mde_prop_sample(prop: float,
+                         n_ratio: tuple[int]=(20, 80),
+                         n_min_range: tuple[int]=(5, 100),
+                         points: int=100,
+                         alpha_beta: tuple[tuple[float]]=((0.05, 0.20), (0.05, 0.10), (0.05, 0.05))):
+    """
+    绘制比率型样本的MDE
+    提示：当阳性样本比率prop和样本量都很小时，由于不满足比率样本z检验假设条件，所以曲线会呈现锯齿状，这时需要提高 n_min_range 的取值范围
+    :param prop: 阳性样本比率
+    :param n_ratio: 两组样本比例，默认值 (20, 80)
+    :param n_min_range: 最小那一组样本的样本量范围，默认值 (5, 100)
+    :param points: 绘图精度，越大精度越高，默认值 100
+    :param alpha_beta: α和β的取值对，默认值 ((0.05, 0.20), (0.05, 0.10), (0.05, 0.05))
+    :return:
+    """
+    color_list = ['#' + _ for _ in '03045e-023e8a-0077b6-0096c7-00b4d8-48cae4-90e0ef-ade8f4-caf0f8'.split('-')]
+    ratio = max(n_ratio) / min(n_ratio)
+    mde = []
+    # 计算MDE ------------------------------------------------------------------------------------------------------------------------
+    # Z 检验
+    for i in range(*n_min_range, max(1, np.floor((n_min_range[1] - n_min_range[0]) / points).astype('int64'))):
+        n1, n2 = np.floor([i, i * ratio]).astype('int64')
+        k1, k2 = np.floor([n1 * prop, n2 * prop]).astype('int64')
+        nn = {'n1': n1, 'n2': n2}
+        mm = {f'mde_alpha_{a:.4f}_beta_{b:.4f}': prop_z_test_two_ind(
+            n1=n1, k1=k1,
+            n2=n2, k2=k2,
+            alpha=a, beta=b, h0='==').get('mde')
+              for a, b in alpha_beta}
+        mde.append(nn | mm)
+    # 转为 DataFrame
+    mde = pd.DataFrame(mde)
+    # 绘图 ------------------------------------------------------------------------------------------------------------------------
+    # 关闭输出
+    with plt.ioff():
+        # 绘制密度函数
+        fig, ax = plt.subplots(figsize=(7, 5))
+        # 遍历所有的 alpha_beta 组合
+        alpha_beta = mde.columns[2:]
+        axs = [ax.plot(mde.n1, mde[c], c=color_list[i % 9], label=r'$\overline{X}_1$') for i, c in enumerate(alpha_beta)]
+        ax.set_xlim(min(mde.n1), max(mde.n1))
+
+        # 坐标刻度
+        ax.grid()
+
+        # 设置
+        plt.title('MDE on the sample size of the smallest group', fontsize=12, fontweight='bold', pad=20)
+        sub_title = 'PropSample: Z-Test'
+        plt.text(
+            0.5, 1,  # 位置（相对坐标，0.5是水平中心）
+            sub_title,
+            fontsize=10,
+            ha='center',  # 水平居中
+            va='bottom',
+            transform=plt.gca().transAxes  # 使用轴坐标系统
+        )
+        alpha_beta = [_.replace('mde_alpha_', r'$\alpha$=').replace('_beta_', r', $\beta$=') for _ in alpha_beta]
+        ax.legend([_[0] for _ in axs], alpha_beta)
+        # 轴标签
+        plt.xlabel("Sample Size of the smallest group")
+        plt.ylabel("MDE (unit: pp)")
+
+    return fig, ax, mde
