@@ -136,8 +136,9 @@ def get_body(s1, s2, test_data: dict) -> list[dict]:
 
 
 def ss_2_html(s1: Sample, s2: Sample, test_data: dict) -> str:
+    _title = s1.report_title if s1.report_title != 'AB实验结果' else s2.report_title
     _caption = {'data': [
-        {'data': 'AB实验结果', 'style': 'text-align: center; margin: 1px; font-weight: 600;'},
+        {'data': _title, 'style': 'text-align: center; margin: 1px; font-weight: 600;'},
         {'data': f'{s1.group_name if s1.group_name else '左组'} - {s2.group_name if s2.group_name else '右组'}', 'style': 'text-align: center; margin: 1px'}]}
     _head = {'data': get_head()}
     _body = {'data': get_body(s1, s2, test_data)}

@@ -12,11 +12,10 @@ class SampleMean(Sample):
     """
     均值类型单指标样本
     """
-
     def __init__(self, n, mean, std, alpha=0.05, beta=0.20, h0='==', days=None,
-                 field_type='Mean', field_name=None, group_ratio=None, group_name=None):
+                 field_type='Mean', field_name=None, group_ratio=None, group_name=None, report_title="AB实验结果"):
         super().__init__(n=n, mean=mean, std=std, alpha=alpha, beta=beta, h0=h0, days=days,
-                         field_type=field_type, field_name=field_name, group_ratio=group_ratio, group_name=group_name)
+                         field_type=field_type, field_name=field_name, group_ratio=group_ratio, group_name=group_name, report_title=report_title)
 
     def __sub__(self, other):
         if isinstance(other, SampleMean):

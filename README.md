@@ -28,7 +28,7 @@ pip install abetter
 import abetter as ab
 
 # 定义均值型指标样本（其中样本量n、样本均值mean、样本标准差std，是3个必要参数，其他为可选参数）
-s1 = ab.SampleMean(n=1000000, mean=0.5000, std=0.2000, field_name='订单量', group_name='实验组', group_ratio=0.1)
+s1 = ab.SampleMean(n=1000000, mean=0.5000, std=0.2000, field_name='订单量', group_name='实验组', group_ratio=0.1, report_title="AB实验结果")
 s2 = ab.SampleMean(n=2000000, mean=0.5005, std=0.2010, field_name='订单量', group_name='空白组', group_ratio=0.2)
 
 # 检验
@@ -44,7 +44,7 @@ ss   # Pandas数据框存储于 ss.data_all
 import abetter as ab
 
 # 定义比率型指标样本（其中样本量n、阳性样本量k，是2个必要参数，其他为可选参数）
-s1 = ab.SampleProp(n=10000, k=60, field_name='交易人数', group_name='实验组', group_ratio=0.1)
+s1 = ab.SampleProp(n=10000, k=60, field_name='交易人数', group_name='实验组', group_ratio=0.1, report_title="AB实验结果")
 s2 = ab.SampleProp(n=20000, k=50, field_name='交易人数', group_name='空白组', group_ratio=0.2)
 
 # 检验

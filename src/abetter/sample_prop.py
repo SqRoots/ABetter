@@ -14,9 +14,9 @@ class SampleProp(Sample):
     """
 
     def __init__(self, n, k, alpha=0.05, beta=0.20, h0='==', days=None,
-                 field_type='Prop', field_name=None, group_ratio=None, group_name=None):
+                 field_type='Prop', field_name=None, group_ratio=None, group_name=None, report_title="AB实验结果"):
         super().__init__(n=n, k=k, alpha=alpha, beta=beta, h0=h0, days=days,
-                         field_type=field_type, field_name=field_name, group_ratio=group_ratio, group_name=group_name)
+                         field_type=field_type, field_name=field_name, group_ratio=group_ratio, group_name=group_name, report_title=report_title)
         self.n = n
         self.k = k
         self.mean = k / n
