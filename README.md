@@ -56,7 +56,28 @@ ss   # Pandas数据框存储于 ss.data_all
 
 <img src="./img/image-20250621105640703.png" alt="image-20250621105640703" style="zoom:50%;" />
 
-### 3.2 绘图
+### 3.2 SRM检验
+
+检验每组样本量实际分布与预期是否一致：
+
+```python
+import abetter as ab
+
+# 实际：每组实际观测样本量规模（整数）
+obs_size=[30, 30, 60]
+# 预期：每组预期样本量比例（之和为 100%）
+exp_ratio=[0.3, 0.3, 0.4]
+# 分组名称
+group_name = ['空白组', '策略1', '策略2']
+
+# SRM检验
+srm = ab.srm_test(obs_size, exp_ratio, group_name)
+srm
+```
+
+<img src="./img/image-20251116134655046.png" alt="image-20251116134655046" style="zoom:50%;" />
+
+### 3.3 绘图
 
 绘制两个样本均值的分布：
 
@@ -90,7 +111,7 @@ fig
 
 <img src="./img/image-20250621110204152.png" alt="image-20250621110204152" style="zoom:50%;" />
 
-### 3.3 计算并绘制MDE曲线
+### 3.4 计算并绘制MDE曲线
 
 计算并绘制**均值型样本**的MDE曲线：
 
@@ -154,6 +175,8 @@ f
 ```
 
 <img src="./img/image-20250824150547847.png" alt="image-20250824150547847" style="zoom:50%;" />
+
+
 
 ## todo
 

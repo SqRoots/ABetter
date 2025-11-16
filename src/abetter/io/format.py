@@ -62,7 +62,7 @@ def none_str(a, b, c=-1):
     else:
         return '[未定义分组比例]'
 
-def get_head() -> list[dict]:
+def generate_head() -> list[dict]:
     row1 = [
         {'element': 'th', 'col': 2, 'cls': 'bt bl br', 'style': 'text-align: center', 'data': '指标'},
         {'element': 'th', 'col': 2, 'cls': 'bt bl br', 'style': 'text-align: center', 'data': '样本'},
@@ -84,7 +84,7 @@ def get_head() -> list[dict]:
     return [{'data': row1}, {'data': row2}]
 
 
-def get_body(s1, s2, test_data: dict) -> list[dict]:
+def generate_body(s1, s2, test_data: dict) -> list[dict]:
     field_name = s1.field_name
     field_type = test_data.get('field_type')
     n1, n2, m1, m2 = s1.n, s2.n, s1.mean, s2.mean
@@ -140,8 +140,8 @@ def ss_2_html(s1: Sample, s2: Sample, test_data: dict) -> str:
     _caption = {'data': [
         {'data': _title, 'style': 'text-align: center; margin: 1px; font-weight: 600;'},
         {'data': f'{s1.group_name if s1.group_name else '左组'} - {s2.group_name if s2.group_name else '右组'}', 'style': 'text-align: center; margin: 1px'}]}
-    _head = {'data': get_head()}
-    _body = {'data': get_body(s1, s2, test_data)}
+    _head = {'data': generate_head()}
+    _body = {'data': generate_body(s1, s2, test_data)}
     _foot = None
 
     return to_html.html_table(caption=_caption, head=_head, body=_body, foot=_foot)
@@ -183,3 +183,63 @@ def df_wide_2_df_stack(s1: Sample, s2: Sample, test_data: dict) -> pd.DataFrame:
         [_field_name, _field_type, '左组均值', s1.mean if _field_type == '[均值型]' else s1.k / s1.n, '$H_0$', _d.get('h0'), 'Effect Size', _d.get('effect_size'),
          'CI Upper', _ciu, none_str(_ciu, s1.n), none_str(_ciu, s2.n), none_str(_ciu, s1.n, _gr1)]
     ], index=pd.MultiIndex.from_tuples(_index, names=['检验法','是否最佳','序号']), columns=pd.MultiIndex.from_tuples(_columns))
+
+
+def srm_2_html(srm: dict) -> str:
+    """
+    SRM检验结果 → HTML
+    :param srm: SRM检验结果dict
+    :return: HTML
+    """
+    # 标题
+    __title = 'SRM 检验（每组样本比例的实际观测值与预期是否一致）'
+    p_value = srm.get('p_value')
+    if p_value<0.05:
+        __sub_title = '检验结论: 【未通过】，实际与预期有显著差异**，P值=' + f'{p_value:.4f}'
+        __style = 'text-align: center; color: #ff0000; margin: 1px'
+    elif p_value<0.10:
+        __sub_title = '检验结论: 【未通过】，实际与预期有显著差异*，P值=' + f'{p_value:.4f}'
+        __style = 'text-align: center; color: #c00000; margin: 1px'
+    else:
+        __sub_title = '检验结论: 【通过】，实际与预期无显著差异，P值=' + f'{p_value:.4f}'
+        __style = 'text-align: center; color: #333; margin: 1px'
+    _caption = {'data': [
+        {'data': __title, 'style': 'text-align: center; margin: 1px; font-weight: 600;'},
+        {'data': __sub_title, 'style': __style}
+    ]}
+
+    # 表 Head
+    __row1 = [
+        {'element': 'th', 'col': 1, 'cls': 'bt bl br', 'style': 'text-align: center', 'data': '分组名称'},
+        {'element': 'th', 'col': 1, 'cls': 'bt bl br', 'style': 'text-align: center', 'data': '实际样本量'},
+        {'element': 'th', 'col': 1, 'cls': 'bt bl br', 'style': 'text-align: center', 'data': '实际样本比例'},
+        {'element': 'th', 'col': 1, 'cls': 'bt bl br', 'style': 'text-align: center', 'data': '预期样本比例'},
+        {'element': 'th', 'col': 1, 'cls': 'bt bl br', 'style': 'text-align: center', 'data': '实际比例 - 预期比例'},
+        {'element': 'th', 'col': 1, 'cls': 'bt bl br', 'style': 'text-align: center', 'data': '误差：差异÷预期'}
+    ]
+    _head = {'data': [
+        {'data': __row1}
+    ]}
+
+    # 表 Body
+    obs_sample_size = srm.get('obs_sample_size')
+    n = srm.get('obs_sample_size_sum')
+    exp_ratio = srm.get('exp_ratio')
+    group_name_list = srm.get('group_name_list')
+    _body = {'data': [
+        {'data':
+            [
+                {'row': 1, 'cls': f'bl br bt bb', 'style': 'text-align: center', 'data': f'{group_name_list[k]}'},
+                {'row': 1, 'cls': f'bl br bt bb', 'style': 'text-align: center', 'data': f'{obs_sample_size[k]:.0f}'},
+                {'row': 1, 'cls': f'bl br bt bb', 'style': 'text-align: center', 'data': f'{obs_sample_size[k] / n * 100:.1f}%'},
+                {'row': 1, 'cls': f'bl br bt bb', 'style': 'text-align: center', 'data': f'{exp_ratio[k]*100:.1f}%'},
+                {'row': 1, 'cls': f'bl br bt bb', 'style': 'text-align: center', 'data': f'{obs_sample_size[k] / n * 100 - exp_ratio[k]*100:.4f}pp'},
+                {'row': 1, 'cls': f'bl br bt bb', 'style': 'text-align: center', 'data': f'{(obs_sample_size[k] / n / exp_ratio[k] - 1 )*100:.4f}%'},
+            ]
+         } for k in range(len(obs_sample_size))
+    ]}
+
+    # 表 Foot
+    _foot = None
+
+    return to_html.html_table(caption=_caption, head=_head, body=_body, foot=_foot)

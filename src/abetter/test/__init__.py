@@ -3,7 +3,8 @@ from abetter.test.all_test_function import (
     mean_z_test,
     prop_z_test,
     prop_fisher_test,
-    var_f_test
+    var_f_test,
+    srm
 )
 
 
@@ -13,5 +14,6 @@ __all__ = [
     'prop_z_test',
     'prop_fisher_test',
     'var_f_test',
+    'srm'
 ]
 

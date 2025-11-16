@@ -3,9 +3,7 @@ from .two_inde_prop_z_test import prop_z_test_two_ind
 from .two_inde_mean_t_test import mean_t_test_two_ind
 from .two_inde_var_f_test import var_f_test_two_ind
 from .two_inde_prop_fisher_exact_test import prop_fisher_exact_test_two_ind
-
-
-# from abetter import SampleMean, SampleProp
+from .srm_test import srm
 
 
 def mean_z_test(s1, s2, alpha: float=None, beta: float=None, h0: str='==', delta: float=0.0) -> dict:
